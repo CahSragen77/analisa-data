@@ -64,7 +64,7 @@ function setupEventListeners() {
     });
 
     $('#exportAllBtn').on('click', exportAllToExcel);
-} // Tanda kurung penutup ganda yang menyebabkan eror di sini sudah diperbaiki sepenuhnya!
+} 
 
 function handleFileSelection(file) {
     if (!file) return;
@@ -219,7 +219,7 @@ function updateUI(data) {
     $('#statSale').text(data.c_tsale.length);
     $('#statProd').text(data.m_loader.length);
     
-    // Perbaikan Penting: Menyesuaikan ulang agar DataTables menerima objek data mentah utuh secara real-time
+    // Sinkronisasi data real-time dengan DataTables objek
     transTable.clear().rows.add(data.c_trans).draw();
     saleTable.clear().rows.add(data.c_tsale).draw();
     memberTable.clear().rows.add(data.m_cust).draw();
@@ -241,13 +241,12 @@ function exportAllToExcel() {
     const data = window.parsedDataGlobal;
     const wb = XLSX.utils.book_new();
     
-    // 1. SHEET LEDGER DETAIL (Ditambahkan kolom Harga Hemat / Potongan Diskon)
+    // 1. SHEET LEDGER DETAIL (Kolom Harga Hemat / Potongan Diskon)
     const transSheet = data.c_trans.map(t => {
         let hargaMentah = parseFloat(t.price) || 0;
         let kuantitas = parseFloat(t.qty) || 0;
         let persenDiskon = parseFloat(t.disc) || 0;
         
-        // Menghitung nominal "Harga Hemat" (Diskon) per baris item
         let hargaHemat = (hargaMentah * kuantitas) * (persenDiskon / 100);
 
         return { 
@@ -258,7 +257,7 @@ function exportAllToExcel() {
             'Harga Satuan': hargaMentah, 
             'Qty': kuantitas, 
             'Diskon%': persenDiskon,
-            'Harga Hemat (Diskon)': hargaHemat, // <-- Kolom Baru
+            'Harga Hemat (Diskon)': hargaHemat, 
             'Kasir': t.kd_kasir, 
             'No Bill': t.no_bill, 
             'Tanggal': t.tgl_trs, 
@@ -268,16 +267,15 @@ function exportAllToExcel() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(transSheet), "Ledger_Detail");
     
-    // 2. SHEET JURNAL SALES HEADER (Memisahkan Tunai, Debit, QRIS, Kredit, dan Total Hemat)
+    // 2. SHEET JURNAL SALES HEADER (Pemisahan Metode Pembayaran & Total Hemat)
     const saleSheet = data.c_tsale.map(s => {
         let tipeCard = (s.j_card || s.card || '').toUpperCase().trim();
         
-        // Identifikasi & Pemisahan nilai pembayaran berdasarkan teks di kolom card
         let nilaiDebit = 0;
         let nilaiQris = 0;
         let nilaiKredit = 0;
         let nilaiCardAsli = parseFloat(s.cash) === 0 || s.card ? (parseFloat(s.jum) - parseFloat(s.cash)) : 0; 
-        // Jika data dump Anda menyimpan nilai kartu di kolom tersendiri, jalankan pemisahan ini:
+        
         if(s.card && !isNaN(parseFloat(s.card))) {
             nilaiCardAsli = parseFloat(s.card);
         }
@@ -289,7 +287,6 @@ function exportAllToExcel() {
         } else if (tipeCard.includes('KREDIT') || tipeCard.includes('CREDIT') || tipeCard.includes('CC')) {
             nilaiKredit = nilaiCardAsli;
         } else if (tipeCard !== '-' && tipeCard !== '') {
-            // Jika ada nama bank/kartu tak dikenal, kita kategorikan sementara ke Debit
             nilaiDebit = nilaiCardAsli;
         }
 
@@ -297,11 +294,11 @@ function exportAllToExcel() {
             'No Faktur': s.no_fak, 
             'Tanggal': s.tgl_f, 
             'Total Gross': s.jum, 
-            'Total Hemat (Diskon Faktur)': parseFloat(s.disc) || 0, // <-- Kolom Baru
+            'Total Hemat (Diskon Faktur)': parseFloat(s.disc) || 0, 
             'Pembayaran Tunai': parseFloat(s.cash) || 0, 
-            'Pembayaran Debit': nilaiDebit,   // <-- Kolom Baru
-            'Pembayaran QRIS': nilaiQris,     // <-- Kolom Baru
-            'Pembayaran Kredit': nilaiKredit, // <-- Kolom Baru
+            'Pembayaran Debit': nilaiDebit, 
+            'Pembayaran QRIS': nilaiQris, 
+            'Pembayaran Kredit': nilaiKredit, 
             'Nama Kartu/Media': s.j_card || s.card || '-',
             'Kembali': parseFloat(s.kembali) || 0, 
             'Member ID': s.member || '-', 
@@ -321,8 +318,7 @@ function exportAllToExcel() {
     // Tulis file ke komputer user
     XLSX.writeFile(wb, `AmandaMart_ERP_Financials_${new Date().toISOString().slice(0,10)}.xlsx`);
     showToast("Excel Berhasil Diekspor dengan Rincian Baru!", "success");
-}
-}
+} // <-- SEKARANG SUDAH BERSIH DAN AMAN
 
 function showToast(msg, type = 'success') {
     const toast = $('#toastMsg');
@@ -332,7 +328,7 @@ function showToast(msg, type = 'success') {
     setTimeout(() => toast.fadeOut(600), 3500);
 }
 
-// Menghubungkan binding data kolom tabel agar terpetakan rapi ke layout visual HTML Anda
+// Menghubungkan susunan kolom DataTables
 function getTransColumns() {
     return [
         { data: "no_urut", defaultContent: "-" }, { data: "plu", defaultContent: "-" }, { data: "descp", defaultContent: "-" }, { data: "kategori", defaultContent: "-" },
